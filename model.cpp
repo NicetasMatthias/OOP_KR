@@ -1,34 +1,30 @@
 #include "model.h"
 
-State Model::DefaultState = {false,false,false,false,false,0,0};
+//State Model::DefaultState = {false,false,false,false,false,0,0};
 
 Model::Model() : QObject()
 {
-    reset();
+    p = new Parking;
+    g = new Gas;
 }
 
 void Model::reset()
 {
     Response t;
-    state = DefaultState;
-    t.d = state;
+    p->reset();
+    g->reset();
+    t.d = get_state();
     t.s = "Протокол 'Чистый Лист'";
-
     emit sendResponse(t);
 }
 
 void Model::request()
 {
     Response t;
-    t.d = state;
+    t.d = get_state();
     t.is_text = false;
 
     emit sendResponse(t);
-}
-
-int Model::freePlaces()
-{
-    return MAX_P-state.parking_car-state.parking_truck*2;
 }
 
 void Model::recieveEvent(Events ev)
@@ -68,121 +64,88 @@ void Model::recieveEvent(Events ev)
 
 void Model::arrive(bool d)
 {
+    QString cr = "автомобиль";
+    QString tr = "грузовик";
     Response t;
-    if(d)
+    Car *c;
+    int err_c;
+    c = new Car(d);
+
+    err_c = g->add(c);
+    if (err_c==-1)
     {
-        if (!state.truck_gas[0])
+        err_c = p->add_car(c);
+        if (err_c==-1)
         {
-            state.truck_gas[0]=true;
-            t.s = "На заправку приезжает грузовик и сразу отправляется на 1 колонку";
-        }
-        else if (!state.truck_gas[1])
-        {
-            state.truck_gas[1]=true;
-            t.s = "На заправку приезжает грузовик и сразу отправляется на 2 колонку";
-        }
-        else if (freePlaces()>=2)
-        {
-            state.parking_truck++;
-            t.s = "На заправку приезжает грузовик, но колонки заняты и он встает на парковку";
+            t.s = "На заправку приезжает " + (d==true?tr:cr) + ", но колонки и парковка заняты и ему приходится ехать дальше";
+            delete c;
         }
         else
         {
-            t.s = "На заправку приезжает грузовик, но колонки и парковка заняты и ему приходится ехать дальше";
+            t.s = "На заправку приезжает " + (d==true?tr:cr) + ", но колонки заняты и он встает на парковку";
         }
     }
     else
     {
-        if (!state.car_gas[0])
-        {
-            state.car_gas[0]=true;
-            t.s = "На заправку приезжает автомобиль и сразу отправляется на 1 колонку";
-        }
-        else if (!state.car_gas[1])
-        {
-            state.car_gas[1]=true;
-            t.s = "На заправку приезжает автомобиль и сразу отправляется на 2 колонку";
-        }
-        else if (!state.car_gas[2])
-        {
-            state.car_gas[2]=true;
-            t.s = "На заправку приезжает автомобиль и сразу отправляется на 3 колонку";
-        }
-        else if (freePlaces()>=1)
-        {
-            state.parking_car++;
-            t.s = "На заправку приезжает автомобиль, но колонки заняты и он встает на парковку";
-        }
-        else
-        {
-            t.s = "На заправку приезжает автомобиль, но колонки и парковка заняты и ему приходится ехать дальше";
-        }
+        t.s = "На заправку приезжает " + (d==true?tr:cr) + " и сразу отправляется на " + QString::number(err_c) + " колонку";
     }
 
-    t.d=state;
+
+    t.d=get_state();
     emit sendResponse(t);
     return;
 }
 
 void Model::release(bool d, short n)
 {
+    QString cb = "Автомобиль";
+    QString tb = "Грузовик";
+    QString cm = "автомобиль";
+    QString tm = "грузовик";
     Response t;
-    if(d)
+    int err_c;
+    Car* c;
+    if (d)
     {
-        if (state.truck_gas[n])
-        {
-            state.truck_gas[n] = false;
-            t.d = state;
-            t.s = "Грузовик на " + QString::number(n+1) + " колонке заправился и уехал с заправки";
-            emit sendResponse(t);
+        err_c = g->release_truck(n);
+    }
+    else
+    {
+        err_c = g->release_car(n);
+    }
 
-            if (state.parking_truck>0)
-            {
-                state.parking_truck--;
-                state.truck_gas[n] = true;
-                t.d = state;
-                t.s = "Грузовик с парковки занял освободившееся место у " + QString::number(n+1) + " колонки";
-                emit sendResponse(t);
-            }
-        }
-        else
+    if (err_c == 0)
+    {
+        t.s = (d==true?tb:cb) + " на " + QString::number(n+1) + " колонке заправился и уехал с заправки";
+        t.d = get_state();
+        emit sendResponse(t);
+        c = p->pick_car(d);
+        if (c != nullptr)
         {
-            t.d = state;
-            t.s = "Мы пытались выгнать грузовик с " + QString::number(n+1) + " колонки, но оказалось что его там не было";
+            g->add(c);
+            t.s = (d==true?tb:cb) + " с парковки занял освободившееся место у " + QString::number(n+1) + " колонки";
+            t.d = get_state();
             emit sendResponse(t);
         }
     }
     else
     {
-        if (state.car_gas[n])
-        {
-            state.car_gas[n] = false;
-            t.d = state;
-            t.s = "Автомобиль на " + QString::number(n+1) + " колонке заправился и уехал с заправки";
-            emit sendResponse(t);
-
-            if (state.parking_car>0)
-            {
-                state.parking_car--;
-                state.car_gas[n] = true;
-                t.d = state;
-                t.s = "Автомобиль с парковки занял освободившееся место у " + QString::number(n+1) + " колонки";
-                emit sendResponse(t);
-            }
-        }
-        else
-        {
-            t.d = state;
-            t.s = "Мы пытались выгнать Автомобиль с " + QString::number(n+1) + " колонки, но оказалось что его там не было";
-            emit sendResponse(t);
-        }
+        t.s = "Мы пытались выгнать " + (d==true?tm:cm) + " с " + QString::number(n+1) + " колонки, но оказалось что его там не было";
+        t.d = get_state();
+        emit sendResponse(t);
     }
     return;
 }
 
-
-
-
+State Model::get_state()
+{
+    State s;
+    g->get_cars_state(s.car_gas);
+    g->get_trucks_state(s.truck_gas);
+    s.parking_car = p->get_num_of_cars();
+    s.parking_truck = p->get_num_of_trucks();
+    return s;
+}
 
 
 

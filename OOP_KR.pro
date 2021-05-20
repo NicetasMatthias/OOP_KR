@@ -10,18 +10,24 @@ CONFIG += c++11
 
 SOURCES += \
     application.cpp \
+    car.cpp \
+    gas.cpp \
     interface.cpp \
     main.cpp \
     model.cpp \
+    parking.cpp \
     window_control.cpp \
     window_info.cpp \
     window_log.cpp
 
 HEADERS += \
     application.h \
+    car.h \
     events.h \
+    gas.h \
     interface.h \
     model.h \
+    parking.h \
     state.h \
     window_control.h \
     window_info.h \
