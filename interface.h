@@ -16,7 +16,7 @@ class Interface;
 class Interface : public QWidget
 {
     Q_OBJECT
-
+private:
     Window_control control;
     Window_info info;
     Window_log log;
@@ -38,12 +38,7 @@ signals:
 
 protected:
     void closeEvent(QCloseEvent*);
-/*
-public slots:
-    void Window_control_Closed();
-    void Window_info_Closed();
-    void Window_log_Closed();
-*/
+
 public slots:
     void reciveResponse(Response);
     void reciveControl(Events);

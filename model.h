@@ -12,6 +12,7 @@
 class Model : public QObject
 {
     Q_OBJECT
+private:
     Parking *p;
     Gas *g;
 
@@ -23,6 +24,7 @@ class Model : public QObject
     State get_state();
 public:
     Model();
+    ~Model();
 
 signals:
     void sendResponse(Response);

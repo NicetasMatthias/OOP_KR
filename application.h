@@ -9,6 +9,7 @@
 class Application : public QApplication
 {
     Q_OBJECT
+private:
     Model *model;
     Interface *interface;
 

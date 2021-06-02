@@ -8,6 +8,12 @@ Model::Model() : QObject()
     g = new Gas;
 }
 
+Model::~Model()
+{
+    p->reset();
+    g->reset();
+}
+
 void Model::reset()
 {
     Response t;

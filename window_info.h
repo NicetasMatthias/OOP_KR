@@ -11,6 +11,7 @@ class Window_info;
 class Window_info : public QWidget
 {
     Q_OBJECT
+private:
     static QString free, busy;
 
 public:
