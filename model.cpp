@@ -1,7 +1,5 @@
 #include "model.h"
 
-//State Model::DefaultState = {false,false,false,false,false,0,0};
-
 Model::Model() : QObject()
 {
     p = new Parking;
